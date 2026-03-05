@@ -1,0 +1,70 @@
+.monitoring-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background-color: #1e1e1e;
+    padding: 10px;
+    z-index: 1000;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    color: white;
+    font-family: Arial, sans-serif;
+}
+.monitoring-panel input {
+    padding: 5px;
+    border: none;
+    border-radius: 3px;
+    background-color: #333;
+    color: white;
+}
+.monitoring-panel button {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    background-color: #4CAF50;
+    color: white;
+}
+.monitoring-panel button.stop {
+    background-color: #f44336;
+}
+.monitoring-panel button.check {
+    background-color: #2196F3;
+}
+.monitoring-panel button:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+}
+.status {
+    color: #ffeb3b;
+}
+/* Toggle button on the right */
+.monitoring-panel .toggle {
+    margin-left: auto;
+    background-color: #777;
+}
+/* Collapsed state: hide everything and remove panel footprint */
+.monitoring-panel.collapsed {
+    height: 0;
+    padding: 0;
+    background-color: transparent;
+    pointer-events: none; /* so hidden bar doesn't block clicks */
+}
+.monitoring-panel.collapsed > :not(#toggleCollapse) {
+    display: none;
+}
+/* Keep toggle visible and clickable at top-right when collapsed */
+.monitoring-panel.collapsed #toggleCollapse {
+    position: fixed;
+    top: 6px;
+    right: 10px;
+    z-index: 1001;
+    pointer-events: auto;
+    transform: rotate(180deg);
+}
+/* Rotate icon when collapsed for visual cue */
+.monitoring-panel.collapsed #toggleCollapse {
+    transform: rotate(180deg);
+}

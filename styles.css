@@ -1,0 +1,24 @@
+#p2p-monitor-panel {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    background: #f0f0f0;
+    padding: 10px;
+    z-index: 1000;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+#p2p-monitor-panel input {
+    width: 100px;
+    padding: 5px;
+}
+#p2p-monitor-panel button {
+    padding: 5px 10px;
+    cursor: pointer;
+}
+#status {
+    font-weight: bold;
+}
