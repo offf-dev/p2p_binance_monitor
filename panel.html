@@ -1,9 +1,13 @@
 <div class="monitoring-panel">
-    <input type="number" id="targetPrice" placeholder="Желаемый курс" step="0.01">
-    <input type="number" id="orderAmount" placeholder="Сумма ордера">
+    <input type="number" id="targetPrice"  placeholder="Желаемый курс (максимум)" step="0.01">
+    <div style="display:flex; gap:8px; margin:8px 0;">
+        <input type="number" id="minAmount" placeholder="Мин. сумма ордера" step="any">
+        <input type="number" id="maxAmount" placeholder="Макс. сумма (опционально)" step="any">
+    </div>
     <button id="startMonitoring">Старт</button>
     <button id="stopMonitoring" class="stop" disabled>Стоп</button>
     <button id="checkSelectors" class="check">Проверить селекторы</button>
     <span class="status" id="status">Ожидание...</span>
+    <span class="nbu-rate" id="nbuRate">НБУ: —</span>
     <button id="toggleCollapse" class="toggle" title="Свернуть/развернуть">▲</button>
 </div>

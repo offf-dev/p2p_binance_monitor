@@ -40,6 +40,11 @@
 .status {
     color: #ffeb3b;
 }
+.nbu-rate {
+    color: #90caf9;
+    font-weight: 600;
+    white-space: nowrap;
+}
 /* Toggle button on the right */
 .monitoring-panel .toggle {
     margin-left: auto;

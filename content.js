@@ -27,9 +27,34 @@ let resumeTimeout = null;
 let selectorsValid = false;
 
 const selectors = {
-    price: 'tr:not(.AdvTableList__pin-to-top) .headline5.text-primaryText',
-    amount: 'tr:not(.AdvTableList__pin-to-top) td:nth-child(4) .bn-flex.flex-wrap.body3 > div:first-child'
+    row: 'tbody.bn-web-table-tbody > tr.bn-web-table-row:not(.AdvTableList__promoted-header-row):not(.AdvTableList__pin-to-top)',
+    price: 'td[aria-colindex="2"] .headline5.text-primaryText',
+    amount: 'td[aria-colindex="3"] .bn-flex.flex-wrap.body3 > div:first-child'
 };
+
+function logOffer(index, price, amount, priceOk, amountOk, targetPrice, minAmount, maxAmount) {
+    console.log(`[P2P Monitor] Объявление #${index + 1}:`);
+    console.log(`  → Цена: ${price} (введено как ${targetPrice}) → ${priceOk ? 'OK ≤' : 'НЕ подходит >'}`);
+    console.log(`  → Сумма: ${amount} (диапазон: ${minAmount} ${maxAmount ? '– ' + maxAmount : 'и больше'}) → ${amountOk ? 'OK' : 'НЕ подходит'}`);
+    console.log('---');
+}
+
+async function updateNbuRate() {
+    const span = document.getElementById('nbuRate');
+    if (!span) return;
+    try {
+        const res = await fetch('https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?valcode=USD&json');
+        const data = await res.json();
+        const rate = data?.[0]?.rate;
+        if (typeof rate === 'number') {
+            span.textContent = `НБУ: ₴${rate.toFixed(2)}`;
+        } else {
+            span.textContent = 'НБУ: ошибка';
+        }
+    } catch (e) {
+        span.textContent = 'НБУ: офлайн';
+    }
+}
 
 function playBeep() {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -47,36 +72,70 @@ function playBeep() {
     oscillator.stop(ctx.currentTime + 0.5); // полсекунды
 }
 
-function runMonitoringStep(targetPrice, targetAmount, statusSpan) {
-    const prices = Array.from(document.querySelectorAll(selectors.price)).slice(0, 5);
-    const amounts = Array.from(document.querySelectorAll(selectors.amount)).slice(0, 5);
+function runMonitoringStep(targetPrice, minAmount, maxAmount, statusSpan) {
+    const rows = Array.from(document.querySelectorAll(selectors.row)).slice(0, 5);
 
-    for (let i = 0; i < prices.length && i < amounts.length; i++) {
-        const price = parseFloat(
-            prices[i].textContent
-                .replace(/[^\d.,]/g, '')
-                .replace(/\s/g, '')
-                .replace(',', '.')
-        );
-        const amount = parseFloat(
-            amounts[i].textContent
-                .replace(/[^\d.,]/g, '')
-                .replace(/\s/g, '')
-                .replace(',', '')
-        );
+    let found = false;
 
-        if (!isNaN(price) && !isNaN(amount) && price <= targetPrice && amount >= targetAmount) {
-            statusSpan.textContent = `Найдено подходящее предложение: ₴${price}, ${amount} UAH`;
+    for (let i = 0; i < rows.length; i++) {
+        const priceEl  = rows[i].querySelector(selectors.price);
+        const amountEl = rows[i].querySelector(selectors.amount);
+        if (!priceEl || !amountEl) continue;
+
+        let priceStr = priceEl.textContent
+            .replace(/[^\d.,]/g, '')
+            .replace(/\s/g, '')
+            .replace(',', '.');
+
+        let amountStr = amountEl.textContent
+            .replace(/[^\d.,]/g, '')
+            .replace(/\s/g, '')
+            .replace(/,/g, '');
+
+        const price  = parseFloat(priceStr);
+        const amount = parseFloat(amountStr);
+
+        if (isNaN(price) || isNaN(amount)) {
+            continue;
+        }
+
+        const priceOk = price <= targetPrice;
+
+        let amountOk;
+        if (!maxAmount || isNaN(maxAmount) || maxAmount <= 0) {
+            amountOk = amount >= minAmount;
+        } else {
+            amountOk = amount >= minAmount && amount <= maxAmount;
+        }
+
+        // ← Вот ключевой лог
+        // logOffer(i, price, amount, priceOk, amountOk, targetPrice, minAmount, maxAmount);
+
+        if (priceOk && amountOk) {
+            let rangeText = maxAmount && !isNaN(maxAmount) && maxAmount > 0
+                ? `${minAmount} – ${maxAmount} UAH`
+                : `от ${minAmount} UAH`;
+
+            statusSpan.textContent = `Найдено: ₴${price.toFixed(2)}, ${amount} UAH (${rangeText})`;
             playBeep();
             clearInterval(monitoringInterval);
             resumeTimeout = setTimeout(() => {
                 if (isMonitoring) {
                     statusSpan.textContent = 'Продолжаем мониторинг...';
-                    monitoringInterval = setInterval(() => runMonitoringStep(targetPrice, targetAmount, statusSpan), 1000);
+                    monitoringInterval = setInterval(
+                        () => runMonitoringStep(targetPrice, minAmount, maxAmount, statusSpan),
+                        1000
+                    );
                 }
             }, 10000);
+
+            found = true;
             break;
         }
+    }
+
+    if (!found) {
+        // console.log('[P2P Monitor] Подходящих предложений в топ-5 нет');
     }
 }
 
@@ -91,26 +150,50 @@ function initializePanel() {
     const panel = document.querySelector('.monitoring-panel');
 
     checkBtn.onclick = () => {
-        const priceElements = document.querySelectorAll(selectors.price);
-        const amountElements = document.querySelectorAll(selectors.amount);
-        selectorsValid = priceElements.length > 0 && amountElements.length > 0;
-        statusSpan.textContent = selectorsValid ? 'Селекторы найдены ✅' : 'Селекторы не найдены ❌';
+        const rows = document.querySelectorAll(selectors.row);
+        let validCount = 0;
+        rows.forEach(row => {
+            if (row.querySelector(selectors.price) && row.querySelector(selectors.amount)) {
+                validCount++;
+            }
+        });
+        selectorsValid = validCount > 0;
+        statusSpan.textContent = selectorsValid
+            ? `Селекторы найдены ✅ (строк: ${validCount})`
+            : 'Селекторы не найдены ❌';
     };
+
+    const minAmountInput = document.getElementById('minAmount');
+    const maxAmountInput = document.getElementById('maxAmount');
 
     startBtn.onclick = () => {
         if (!selectorsValid) {
             statusSpan.textContent = 'Сначала проверьте селекторы!';
             return;
         }
+
+        const targetPriceRaw = targetPriceInput.value.replace(',', '.');
+        const minRaw  = minAmountInput.value.replace(',', '');
+        const maxRaw  = maxAmountInput.value.replace(',', '');
+
+        const targetPrice = parseFloat(targetPriceRaw);
+        const minAmount   = parseFloat(minRaw);
+        const maxAmount   = maxRaw.trim() !== '' ? parseFloat(maxRaw) : null;
+
+        if (isNaN(targetPrice) || isNaN(minAmount) || minAmount <= 0) {
+            statusSpan.textContent = 'Некорректные значения цены или минимальной суммы';
+            return;
+        }
+
         isMonitoring = true;
         startBtn.disabled = true;
         stopBtn.disabled = false;
         statusSpan.textContent = 'Мониторинг запущен...';
 
-        const targetPrice = parseFloat(targetPriceInput.value.replace(',', '.'));
-        const targetAmount = parseFloat(orderAmountInput.value.replace(',', '.'));
-
-        monitoringInterval = setInterval(() => runMonitoringStep(targetPrice, targetAmount, statusSpan), 1000);
+        monitoringInterval = setInterval(
+            () => runMonitoringStep(targetPrice, minAmount, maxAmount, statusSpan),
+            1000
+        );
     };
 
     stopBtn.onclick = () => {
@@ -128,4 +211,7 @@ function initializePanel() {
             toggleBtn.title = collapsed ? 'Развернуть' : 'Свернуть';
         };
     }
+
+    updateNbuRate();
+    setInterval(updateNbuRate, 60 * 60 * 1000);
 }
