@@ -5,7 +5,8 @@
   "description": "Monitors Binance prices and alerts on target price",
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "storage"
   ],
   "host_permissions": [
     "https://bank.gov.ua/*"

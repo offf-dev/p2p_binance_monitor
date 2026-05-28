@@ -166,6 +166,29 @@ function initializePanel() {
     const minAmountInput = document.getElementById('minAmount');
     const maxAmountInput = document.getElementById('maxAmount');
 
+    const STORAGE_KEY = 'p2pMonitorInputs';
+    chrome.storage.local.get(STORAGE_KEY, (data) => {
+        const saved = data?.[STORAGE_KEY];
+        if (saved) {
+            if (saved.targetPrice != null) targetPriceInput.value = saved.targetPrice;
+            if (saved.minAmount != null) minAmountInput.value = saved.minAmount;
+            if (saved.maxAmount != null) maxAmountInput.value = saved.maxAmount;
+        }
+    });
+
+    const persistInputs = () => {
+        chrome.storage.local.set({
+            [STORAGE_KEY]: {
+                targetPrice: targetPriceInput.value,
+                minAmount: minAmountInput.value,
+                maxAmount: maxAmountInput.value
+            }
+        });
+    };
+    [targetPriceInput, minAmountInput, maxAmountInput].forEach(el => {
+        el.addEventListener('input', persistInputs);
+    });
+
     startBtn.onclick = () => {
         if (!selectorsValid) {
             statusSpan.textContent = 'Сначала проверьте селекторы!';
