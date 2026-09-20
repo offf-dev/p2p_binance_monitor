@@ -36,3 +36,6 @@ docker/redis
 
 # Misc
 *.log
+
+# Telegram credentials
+telegram.config.json

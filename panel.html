@@ -4,6 +4,20 @@
         <input type="number" id="minAmount" placeholder="Мин. сумма ордера" step="any">
         <input type="number" id="maxAmount" placeholder="Макс. сумма (опционально)" step="any">
     </div>
+    <label class="autofill" title="Сразу нажать «Купить» на подходящем объявлении">
+        <input type="checkbox" id="autoFill">
+        Автозаполнение ордера
+    </label>
+    <label class="autofill danger" title="После заполнения нажать «Купить USDT» — ордер создастся без вашего подтверждения">
+        <input type="checkbox" id="autoConfirm">
+        …и подтвердить
+    </label>
+    <div class="tg-group">
+        <input type="password" id="telegramToken" placeholder="Telegram bot token" autocomplete="off">
+        <input type="text" id="telegramChatId" placeholder="chat_id">
+        <button id="testTelegram" class="check">Тест TG</button>
+        <span class="status" id="telegramStatus"></span>
+    </div>
     <button id="startMonitoring">Старт</button>
     <button id="stopMonitoring" class="stop" disabled>Стоп</button>
     <button id="checkSelectors" class="check">Проверить селекторы</button>

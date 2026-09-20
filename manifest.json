@@ -9,7 +9,8 @@
     "storage"
   ],
   "host_permissions": [
-    "https://bank.gov.ua/*"
+    "https://bank.gov.ua/*",
+    "https://api.telegram.org/*"
   ],
   "content_scripts": [
     {
@@ -22,6 +23,7 @@
     {
       "resources": [
         "panel.html",
+        "telegram.config.json",
         "sound/beep.mp3",
         "icon48.jpg",
         "icon128.jpg"

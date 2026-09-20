@@ -7,6 +7,7 @@
     padding: 10px;
     z-index: 1000;
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
     align-items: center;
     color: white;
@@ -72,4 +73,39 @@
 /* Rotate icon when collapsed for visual cue */
 .monitoring-panel.collapsed #toggleCollapse {
     transform: rotate(180deg);
+}
+.monitoring-panel .autofill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+}
+.monitoring-panel .autofill input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    padding: 0;
+    accent-color: #4CAF50;
+    cursor: pointer;
+}
+.monitoring-panel .autofill.danger {
+    color: #ff8a80;
+}
+.monitoring-panel .autofill input[type="checkbox"]:disabled {
+    cursor: not-allowed;
+}
+.monitoring-panel .autofill:has(input:disabled) {
+    opacity: 0.5;
+}
+.monitoring-panel .tg-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.monitoring-panel .tg-group #telegramToken {
+    width: 170px;
+}
+.monitoring-panel .tg-group #telegramChatId {
+    width: 110px;
 }
