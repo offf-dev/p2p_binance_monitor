@@ -286,11 +286,21 @@ function paymentText(el) {
 
 // В форме способ оплаты выбран за нас: если это не Monobank — открываем список
 // и переключаем. Не получилось — ордер не подтверждаем.
-async function ensurePaymentMethod(form, wanted) {
+async function ensurePaymentMethod(form, wanted, offer) {
     const wantedRe = new RegExp(wanted.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
 
-    const firstItem = form.querySelector(selectors.paymentItem);
-    if (!firstItem) return { ok: false, reason: 'блок способа оплаты в форме не найден' };
+    const firstItem = await waitFor(() => form.querySelector(selectors.paymentItem), 3000);
+    if (!firstItem) {
+        // Блока нет вовсе. Если у объявления единственный способ оплаты и это
+        // нужный нам — выбирать нечего, идём дальше; иначе не рискуем.
+        const rowMethods = offer?.methods || [];
+        const only = rowMethods.length === 1 ? rowMethods[0] : '';
+        if (only && wantedRe.test(only)) return { ok: true, current: only };
+        return {
+            ok: false,
+            reason: `блок способа оплаты в форме не найден (у объявления: ${rowMethods.join(', ') || '—'})`
+        };
+    }
 
     // Список может открыться порталом внутри формы, поэтому «выбранный» способ
     // читаем строго из его собственного блока
@@ -341,8 +351,12 @@ async function autoFillOrder({ buyBtn, rowKey, amount, sampleText, statusSpan, o
             ? document.querySelector(`tr[data-row-key="${CSS.escape(rowKey)}"]`)
             : null;
         const next = row?.nextElementSibling;
-        if (next?.matches(selectors.orderForm)) return next;
-        return document.querySelector(selectors.orderForm);
+        const candidate = next?.matches(selectors.orderForm)
+            ? next
+            : document.querySelector(selectors.orderForm);
+        // Сама <tr> появляется раньше своего содержимого: ждём поле суммы,
+        // иначе следующие шаги читают полупустую форму
+        return candidate?.querySelector(selectors.orderAmount) ? candidate : null;
     });
 
     if (!form) {
@@ -353,8 +367,8 @@ async function autoFillOrder({ buyBtn, rowKey, amount, sampleText, statusSpan, o
 
     // Сначала способ оплаты: его переключение перерисовывает форму и может
     // сбросить уже введённую сумму
-    const payment = await ensurePaymentMethod(form, PREFERRED_PAYMENT);
-    if (!payment.ok) {
+    const payment = await ensurePaymentMethod(form, PREFERRED_PAYMENT, offer);
+    if (!payment.ok && ui?.autoConfirmInput?.checked) {
         statusSpan.textContent = `Ордер не создан: ${payment.reason} ❌`;
         await notifyTelegram({ ok: false, offer, criteria, reason: payment.reason }, statusSpan);
         return;
@@ -371,7 +385,9 @@ async function autoFillOrder({ buyBtn, rowKey, amount, sampleText, statusSpan, o
     setInputValue(input, filled);
 
     if (!ui?.autoConfirmInput?.checked) {
-        statusSpan.textContent = `Форма заполнена: ${filled} UAH — подтвердите вручную`;
+        statusSpan.textContent = payment.ok
+            ? `Форма заполнена: ${filled} UAH — подтвердите вручную`
+            : `Форма заполнена: ${filled} UAH, но ${payment.reason} — проверьте оплату вручную`;
         return;
     }
 
